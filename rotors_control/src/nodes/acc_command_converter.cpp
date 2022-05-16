@@ -12,8 +12,7 @@ namespace rotors_control
       : receive_first_odom(false),
         receive_thrust_cmd(false),
         receive_goal(false),
-        receive_goal_training(false),
-        receive_first_goal(false)
+        receive_goal_training(false)
   {
     ros::NodeHandle nh;
 
@@ -28,7 +27,6 @@ namespace rotors_control
     ros::NodeHandle pnh("~");
     GetRosParameter(pnh, "use_vehicle_frame", true, &use_vehicle_frame);
     GetRosParameter(pnh, "use_yaw_stabilize", false, &use_yaw_stabilize);
-    GetRosParameter(pnh, "fixed_height", false, &fixed_height); // get latest height cmd from goal topic
 
     GetRosParameter(pnh, "Kp_x", 0.0, &Kp_x);
     GetRosParameter(pnh, "Ki_x", 0.0, &Ki_x);
@@ -75,38 +73,16 @@ namespace rotors_control
 
     srand((unsigned)time(NULL));
 
-    //need to know current yaw angle of the robot if acc vector is expressed in world frame
+    // need to know current yaw angle of the robot if acc vector is expressed in world frame
     odometry_sub_ = nh.subscribe(kDefaultOdometryTopic, 100, &AccCommandConverterNode::OdometryCallback, this);
     goal_pose_sub_ = nh.subscribe("goal", 1, &AccCommandConverterNode::GoalPoseCallback, this);
     goal_training_pose_sub_ = nh.subscribe("goal_training", 1, &AccCommandConverterNode::GoalTrainingPoseCallback, this);
-
-    reset_service_ = nh.advertiseService("pid_reset", &AccCommandConverterNode::ResetCallback, this);
 
     vehicle_frame_id = ros::this_node::getNamespace();
     ROS_WARN_STREAM("vehicle_frame_id:" << vehicle_frame_id);
   }
 
   AccCommandConverterNode::~AccCommandConverterNode() {}
-
-  bool AccCommandConverterNode::ResetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
-  {
-    ROS_INFO("Reset serviced called");
-    pid_x->reset();
-    pid_y->reset();
-    pid_z->reset();
-    rate_thrust_cmd.thrust.x = 0.0;
-    rate_thrust_cmd.thrust.y = 0.0;
-    rate_thrust_cmd.thrust.z = 0.0;
-    rate_thrust_cmd.angular_rates.x = 0.0;
-    rate_thrust_cmd.angular_rates.y = 0.0;
-    rate_thrust_cmd.angular_rates.z = 0.0; 
-    //receive_first_odom = false;
-    receive_thrust_cmd = false;
-    receive_goal = false;
-    receive_goal_training = false;
-    receive_first_goal = false;
-    return true;
-  }
 
   void AccCommandConverterNode::RateThrustCallback(
       const mav_msgs::RateThrustPtr &rate_thrust_msg)
@@ -118,15 +94,15 @@ namespace rotors_control
     rate_thrust_cmd = *rate_thrust_msg;
     receive_thrust_cmd = true;
     receive_goal = false;
-    //receive_goal_training = false;
+    // receive_goal_training = false;
   }
 
   // should be in a seperate node
-  void AccCommandConverterNode::GoalPoseCallback(const geometry_msgs::Pose &goal)
+  // void AccCommandConverterNode::GoalPoseCallback(const geometry_msgs::Pose &goal)
+  void AccCommandConverterNode::GoalPoseCallback(const geometry_msgs::PoseStamped &goal)
   {
-    geometry_msgs::Pose goal_msg(goal);
-    if ((goal_msg.orientation.x == 0.0) && (goal_msg.orientation.y == 0.0)
-    && (goal_msg.orientation.z == 0.0) && (goal_msg.orientation.w == 0.0))
+    geometry_msgs::Pose goal_msg(goal.pose);
+    if ((goal_msg.orientation.x == 0.0) && (goal_msg.orientation.y == 0.0) && (goal_msg.orientation.z == 0.0) && (goal_msg.orientation.w == 0.0))
     {
       goal_msg.orientation.w = 1.0;
     }
@@ -135,7 +111,6 @@ namespace rotors_control
     goal_odometry.getEulerAngles(&goal_euler_angles);
     goal_yaw = goal_euler_angles(2);
     receive_goal = true;
-    receive_first_goal = true;
     receive_goal_training = false;
     ROS_INFO_STREAM("Received goal: pos x " << goal_msg.position.x << ",y " << goal_msg.position.y << ",z " << goal_msg.position.z
                                             << ", orientation x " << goal_msg.orientation.x << ",y " << goal_msg.orientation.y << ",z " << goal_msg.orientation.z << ",w " << goal_msg.orientation.w);
@@ -148,8 +123,7 @@ namespace rotors_control
   void AccCommandConverterNode::GoalTrainingPoseCallback(const geometry_msgs::Pose &goal)
   {
     geometry_msgs::Pose goal_msg(goal);
-    if ((goal_msg.orientation.x == 0.0) && (goal_msg.orientation.y == 0.0)
-    && (goal_msg.orientation.z == 0.0) && (goal_msg.orientation.w == 0.0))
+    if ((goal_msg.orientation.x == 0.0) && (goal_msg.orientation.y == 0.0) && (goal_msg.orientation.z == 0.0) && (goal_msg.orientation.w == 0.0))
     {
       goal_msg.orientation.w = 1.0;
     }
@@ -166,7 +140,8 @@ namespace rotors_control
     ROS_INFO_STREAM("Goal_training yaw:" << goal_training_yaw * 180 / M_PI << " deg");
     ROS_INFO("**********");
   }
-  void AccCommandConverterNode::convertGoal2WorldFrame(const geometry_msgs::Pose &goal, const mav_msgs::EigenOdometry &robot_odom,
+  void AccCommandConverterNode::convertGoal2WorldFrame(geometry_msgs::Pose &goal,
+                                                       mav_msgs::EigenOdometry &robot_odom,
                                                        mav_msgs::EigenOdometry *goal_in_world)
   {
     Eigen::Vector3d robot_euler_angles;
@@ -196,7 +171,8 @@ namespace rotors_control
     goal_in_world->orientation_W_B = goal_quat_in_world;
   }
 
-  void AccCommandConverterNode::convertGoal2VehicleFrame(const mav_msgs::EigenOdometry &goal_odom, const mav_msgs::EigenOdometry &robot_odom,
+  void AccCommandConverterNode::convertGoal2VehicleFrame(mav_msgs::EigenOdometry &goal_odom,
+                                                         mav_msgs::EigenOdometry &robot_odom,
                                                          nav_msgs::Odometry *goal_in_vehicle_frame)
   {
     Eigen::Vector3d goal_euler_angles, robot_euler_angles;
@@ -237,7 +213,7 @@ namespace rotors_control
       if (cnt >= 51)
       {
         odom_dtime = odom_dtime / 50;
-        //odom_dtime = 0.001;
+        // odom_dtime = 0.001;
         ROS_INFO_STREAM("Odom dtime:" << odom_dtime);
         frame_id = odometry_msg->header.frame_id;
         pid_x = new PID(odom_dtime, acc_x_max, -acc_x_max, Kp_x, Kd_x, Ki_x, alpha_x);
@@ -278,7 +254,7 @@ namespace rotors_control
         nx = d_x(gen_x);
         ny = d_y(gen_y);
         nz = d_z(gen_z);
-        //std::cout << "Noise:" << nx << "," << ny << "," << nz << "," << random_num << std::endl;
+        // std::cout << "Noise:" << nx << "," << ny << "," << nz << "," << random_num << std::endl;
         rate_thrust_cmd_tmp.thrust.x += nx;
         rate_thrust_cmd_tmp.thrust.y += ny;
         rate_thrust_cmd_tmp.thrust.z += nz;
@@ -288,24 +264,19 @@ namespace rotors_control
       rate_thrust_cmd_tmp.angular_rates.z = 0.0;
       rate_thrust_cmd = rate_thrust_cmd_tmp;
     }
-    else if (receive_goal_training) // receive goal but don't execute
+    else if (receive_goal_training)
     {
       // calculate goal in vehicle frame
       if (use_vehicle_frame)
       {
         convertGoal2VehicleFrame(goal_training_odometry, odometry, &goal_in_approriate_frame);
-      }      
+      }
       else
       {
         msgOdometryFromEigen(goal_training_odometry, &goal_in_approriate_frame);
       }
     }
 
-    if (fixed_height && receive_thrust_cmd && receive_first_goal)
-    {
-      // modify z thrust to keep the same height
-      rate_thrust_cmd.thrust.z = pid_z->calculate(goal_odometry.position_W(2), odometry.position_W(2));
-    }
     mav_msgs::RateThrust reference = rate_thrust_cmd;
     mav_msgs::RollPitchYawrateThrustPtr rpyrate_thrust_cmd(new mav_msgs::RollPitchYawrateThrust);
     Eigen::Vector3d current_rpy;
@@ -315,7 +286,7 @@ namespace rotors_control
     double current_yaw = (use_vehicle_frame) ? 0.0 : current_rpy(2);
     Eigen::Vector3d thrust_sp;
     thrust_sp << reference.thrust.x, reference.thrust.y, reference.thrust.z;
-    thrust_sp = (thrust_sp + Eigen::Vector3d(0, 0, 9.81)) * mass;
+    thrust_sp = (thrust_sp + Eigen::Vector3d(0, 0, kGravity)) * mass;
     Eigen::Vector3d thrust_norm = thrust_sp.normalized();
 
     double cphi_stheta = thrust_norm(0) * cos(current_yaw) + thrust_norm(1) * sin(current_yaw);
@@ -419,7 +390,7 @@ namespace rotors_control
     rpyrate_thrust_cmd->thrust.z = thrust_sp.norm();
 
     // OR cross-product of thrust vector and current z_B axis
-    //rpyrate_thrust_cmd->thrust.z = thrust_sp(0)*(cos(current_roll)*sin(current_pitch)*cos(current_yaw) + sin(current_roll)*sin(current_yaw))
+    // rpyrate_thrust_cmd->thrust.z = thrust_sp(0)*(cos(current_roll)*sin(current_pitch)*cos(current_yaw) + sin(current_roll)*sin(current_yaw))
     //                           + thrust_sp(1)*(cos(current_roll)*sin(current_pitch)*sin(current_yaw) - sin(current_roll)*cos(current_yaw))
     //                           + thrust_sp(2)*cos(current_roll)*cos(current_pitch);
 
@@ -440,7 +411,7 @@ namespace rotors_control
     else
     {
       StateAction state_action_msg;
-      state_action_msg.header.stamp = ros::Time::now();//previous_robot_odom.header.stamp;
+      state_action_msg.header.stamp = ros::Time::now(); // previous_robot_odom.header.stamp;
       state_action_msg.robot_odom = previous_robot_odom;
       state_action_msg.goal_odom = previous_goal_odom;
       state_action_msg.action = previous_action;
@@ -457,11 +428,11 @@ namespace rotors_control
     // publish tf for vehicle frame
     static tf::TransformBroadcaster br;
     tf::Transform transform;
-    transform.setOrigin( tf::Vector3(odometry.position_W(0), odometry.position_W(1), odometry.position_W(2)) );
+    transform.setOrigin(tf::Vector3(odometry.position_W(0), odometry.position_W(1), odometry.position_W(2)));
     tf::Quaternion q;
     q.setRPY(0, 0, current_rpy(2));
     transform.setRotation(q);
-    br.sendTransform(tf::StampedTransform(transform, odometry_msg->header.stamp, "world", vehicle_frame_id));    
+    br.sendTransform(tf::StampedTransform(transform, odometry_msg->header.stamp, "world", vehicle_frame_id));
   }
 
 } // namespace rotors_control
