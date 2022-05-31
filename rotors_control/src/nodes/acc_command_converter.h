@@ -53,9 +53,11 @@ class AccCommandConverterNode {
   double Kp_x, Ki_x, Kd_x, acc_x_max, alpha_x; 
   double Kp_y, Ki_y, Kd_y, acc_y_max, alpha_y;
   double Kp_z, Ki_z, Kd_z, acc_z_max, alpha_z;
-  double Kp_vel_x, Ki_vel_x, Kd_vel_x, alpha_vel_x; 
-  double Kp_vel_y, Ki_vel_y, Kd_vel_y, alpha_vel_y; 
-  double Kp_vel_z, Ki_vel_z, Kd_vel_z, alpha_vel_z; 
+  double Kp_vel_x, Ki_vel_x, Kd_vel_x; 
+  double Kp_vel_y, Ki_vel_y, Kd_vel_y; 
+  double Kp_vel_z, Ki_vel_z, Kd_vel_z;
+  std::vector<double> integrator_pos_max, integrator_vel_max;
+  std::vector<double> antiwindup_radius_pos, antiwindup_radius_vel; 
   double odom_dtime;
   double eps_explore; 
   double noise_x, noise_y, noise_z;

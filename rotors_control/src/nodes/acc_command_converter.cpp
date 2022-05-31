@@ -40,7 +40,6 @@ namespace rotors_control
     GetRosParameter(pnh, "Kd_vel_x", 0.0, &Kd_vel_x);    
     GetRosParameter(pnh, "acc_x_max", 0.0, &acc_x_max);
     GetRosParameter(pnh, "alpha_x", 0.0, &alpha_x);
-    GetRosParameter(pnh, "alpha_vel_x", 0.0, &alpha_vel_x);
 
     GetRosParameter(pnh, "Kp_y", 0.0, &Kp_y);
     GetRosParameter(pnh, "Ki_y", 0.0, &Ki_y);
@@ -50,7 +49,6 @@ namespace rotors_control
     GetRosParameter(pnh, "Kd_vel_y", 0.0, &Kd_vel_y);    
     GetRosParameter(pnh, "acc_y_max", 0.0, &acc_y_max);
     GetRosParameter(pnh, "alpha_y", 0.0, &alpha_y);
-    GetRosParameter(pnh, "alpha_vel_y", 0.0, &alpha_vel_y);
 
     GetRosParameter(pnh, "Kp_z", 0.0, &Kp_z);
     GetRosParameter(pnh, "Ki_z", 0.0, &Ki_z);
@@ -60,7 +58,38 @@ namespace rotors_control
     GetRosParameter(pnh, "Kd_vel_z", 0.0, &Kd_vel_z);    
     GetRosParameter(pnh, "acc_z_max", 0.0, &acc_z_max);
     GetRosParameter(pnh, "alpha_z", 0.0, &alpha_z);
-    GetRosParameter(pnh, "alpha_vel_z", 0.0, &alpha_vel_z);
+
+    if (!pnh.getParam("antiwindup_radius_pos", antiwindup_radius_pos)) {
+        ROS_ERROR("antiwindup_radius_pos in lmf_controller is not loaded from ros parameter server");
+        abort();
+    }
+    ROS_WARN_STREAM("antiwindup_radius_pos:" << antiwindup_radius_pos.at(0) << " "
+                                            << antiwindup_radius_pos.at(1) << " "
+                                            << antiwindup_radius_pos.at(2));
+
+    if (!pnh.getParam("antiwindup_radius_vel", antiwindup_radius_vel)) {
+        ROS_ERROR("antiwindup_radius_vel in lmf_controller is not loaded from ros parameter server");
+        abort();
+    }
+    ROS_WARN_STREAM("antiwindup_radius_vel:" << antiwindup_radius_vel.at(0) << " "
+                                            << antiwindup_radius_vel.at(1) << " "
+                                            << antiwindup_radius_vel.at(2));
+
+    if (!pnh.getParam("integrator_pos_max", integrator_pos_max)) {
+        ROS_ERROR("integrator_pos_max in lmf_controller is not loaded from ros parameter server");
+        abort();
+    }
+    ROS_WARN_STREAM("integrator_pos_max:" << integrator_pos_max.at(0) << " "
+                                            << integrator_pos_max.at(1) << " "
+                                            << integrator_pos_max.at(2));
+
+    if (!pnh.getParam("integrator_vel_max", integrator_vel_max)) {
+        ROS_ERROR("integrator_vel_max in lmf_controller is not loaded from ros parameter server");
+        abort();
+    }
+    ROS_WARN_STREAM("integrator_vel_max:" << integrator_vel_max.at(0) << " "
+                                            << integrator_vel_max.at(1) << " "
+                                            << integrator_vel_max.at(2));
 
     GetRosParameter(pnh, "eps_explore", 0.0, &eps_explore);
 
@@ -337,12 +366,13 @@ namespace rotors_control
         //odom_dtime = 0.001;
         ROS_INFO_STREAM("Odom dtime:" << odom_dtime);
         frame_id = odometry_msg->header.frame_id;
-        pid_x = new PID(odom_dtime, acc_x_max, -acc_x_max, Kp_x, Kd_x, Ki_x, alpha_x);
-        pid_y = new PID(odom_dtime, acc_y_max, -acc_y_max, Kp_y, Kd_y, Ki_y, alpha_y);
-        pid_z = new PID(odom_dtime, acc_z_max, -acc_z_max, Kp_z, Kd_z, Ki_z, alpha_z);
-        pid_vel_x = new PID(odom_dtime, acc_x_max, -acc_x_max, Kp_vel_x, Kd_vel_x, Ki_vel_x, alpha_vel_x);
-        pid_vel_y = new PID(odom_dtime, acc_y_max, -acc_y_max, Kp_vel_y, Kd_vel_y, Ki_vel_y, alpha_vel_y);
-        pid_vel_z = new PID(odom_dtime, acc_z_max, -acc_z_max, Kp_vel_z, Kd_vel_z, Ki_vel_z, alpha_vel_z);        
+        pid_x = new PID(odom_dtime, acc_x_max, -acc_x_max, Kp_x, Kd_x, Ki_x, 0.0, alpha_x, antiwindup_radius_pos.at(0), integrator_pos_max.at(0));
+        pid_y = new PID(odom_dtime, acc_y_max, -acc_y_max, Kp_y, Kd_y, Ki_y, 0.0, alpha_y, antiwindup_radius_pos.at(1), integrator_pos_max.at(1));
+        pid_z = new PID(odom_dtime, acc_z_max, -acc_z_max, Kp_z, Kd_z, Ki_z, 0.0, alpha_z, antiwindup_radius_pos.at(2), integrator_pos_max.at(2));
+        pid_vel_x = new PID(odom_dtime, acc_x_max, -acc_x_max, Kp_vel_x, Kd_vel_x, Ki_vel_x, alpha_x, 0.0, antiwindup_radius_vel.at(0), integrator_vel_max.at(0));
+        pid_vel_y = new PID(odom_dtime, acc_y_max, -acc_y_max, Kp_vel_y, Kd_vel_y, Ki_vel_y, alpha_y, 0.0, antiwindup_radius_vel.at(1), integrator_vel_max.at(1));
+        pid_vel_z = new PID(odom_dtime, acc_z_max, -acc_z_max, Kp_vel_z, Kd_vel_z, Ki_vel_z, alpha_z, 0.0, antiwindup_radius_vel.at(2), integrator_vel_max.at(2));
+
         receive_first_odom = true;
       }
       else
