@@ -82,6 +82,7 @@ class AccCommandConverterNode {
 
   ros::Publisher cmd_roll_pitch_yawrate_thrust_pub_;
   ros::Publisher state_action_pub_;
+  // ros::Publisher cmd_twist_stamped_pub_;
 
   ros::ServiceServer reset_service_;
 

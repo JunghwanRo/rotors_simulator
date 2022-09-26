@@ -25,6 +25,8 @@ namespace rotors_control
         kDefaultCommandRollPitchYawrateThrustTopic, 1);
     state_action_pub_ = nh.advertise<rotors_control::StateAction>(
         "state_action", 1);
+    // cmd_twist_stamped_pub_ = nh.advertise<geometry_msgs::TwistStamped>(
+    //     "cmd_velocity_stamped", 1);        
 
     ros::NodeHandle pnh("~");
     GetRosParameter(pnh, "use_vehicle_frame", true, &use_vehicle_frame);
@@ -153,6 +155,12 @@ namespace rotors_control
     receive_goal_training = false;
     receive_vel_cmd = false;
     receive_first_goal = false;
+    // Eigen::Vector3d robot_euler_angles;
+    // odometry.getEulerAngles(&robot_euler_angles);
+    // ROS_INFO_STREAM("Robot RPY:" << robot_euler_angles.transpose() * 180.0/M_PI << " deg");
+    // ROS_INFO_STREAM("Robot pos W:" << odometry.position_W.transpose());
+    // ROS_INFO_STREAM("Robot velocity B:" << odometry.velocity_B.transpose());
+    // ROS_INFO_STREAM("Robot angular velocity B:" << odometry.angular_velocity_B.transpose());    
     return true;
   }
 
@@ -192,6 +200,12 @@ namespace rotors_control
     ROS_INFO_STREAM("Odom in world: pos x " << odometry.position_W(0) << ",y " << odometry.position_W(1) << ",z " << odometry.position_W(2));
     ROS_INFO_STREAM("Goal in world: pos x " << goal_odometry.position_W(0) << ",y " << goal_odometry.position_W(1) << ",z " << goal_odometry.position_W(2));
     ROS_INFO_STREAM("Goal yaw:" << goal_yaw * 180 / M_PI << " deg");
+    // Eigen::Vector3d robot_euler_angles;
+    // odometry.getEulerAngles(&robot_euler_angles);
+    // ROS_INFO_STREAM("Robot RPY:" << robot_euler_angles.transpose() * 180.0/M_PI << " deg");
+    // ROS_INFO_STREAM("Robot pos W:" << odometry.position_W.transpose());
+    // ROS_INFO_STREAM("Robot velocity B:" << odometry.velocity_B.transpose());
+    // ROS_INFO_STREAM("Robot angular velocity B:" << odometry.angular_velocity_B.transpose());    
     ROS_INFO("**********");
   }
 
@@ -220,16 +234,25 @@ namespace rotors_control
 
   void AccCommandConverterNode::CmdVelocityCallback(const geometry_msgs::Twist &cmd_vel)
   {
-    Eigen::Vector3d robot_euler_angles;
     //convertCmdVel2WorldFrame(cmd_vel, odometry, cmd_vel_W);
     cmd_vel_V = cmd_vel;
     receive_goal_training = false;
     receive_goal = false;
     receive_vel_cmd = true;
+
+    // geometry_msgs::TwistStamped cmd_vel_stamped;
+    // cmd_vel_stamped.header.stamp = ros::Time::now();
+    // cmd_vel_stamped.twist = cmd_vel;
+    // cmd_twist_stamped_pub_.publish(cmd_vel_stamped);    
+    
     ROS_INFO_STREAM("Received cmd_vel, cmd_vel: linear x " << cmd_vel.linear.x << ",y " << cmd_vel.linear.y << ",z " << cmd_vel.linear.z
                     << ", twist x " << cmd_vel.angular.x << ",y " << cmd_vel.angular.y << ",z " << cmd_vel.angular.z);
-    odometry.getEulerAngles(&robot_euler_angles);
-    ROS_INFO_STREAM("Robot RPY:" << robot_euler_angles.transpose() << " rad");                    
+    // Eigen::Vector3d robot_euler_angles;
+    // odometry.getEulerAngles(&robot_euler_angles);
+    // ROS_INFO_STREAM("Robot RPY:" << robot_euler_angles.transpose() * 180.0/M_PI << " deg");
+    // ROS_INFO_STREAM("Robot pos W:" << odometry.position_W.transpose());
+    // ROS_INFO_STREAM("Robot velocity B:" << odometry.velocity_B.transpose());
+    // ROS_INFO_STREAM("Robot angular velocity B:" << odometry.angular_velocity_B.transpose());                    
     // ROS_INFO_STREAM("cmd_vel_W: linear x " << cmd_vel_W.linear.x << ",y " << cmd_vel_W.linear.y << ",z " << cmd_vel_W.linear.z
     //                 << ", twist x " << cmd_vel_W.twist.x << ",y " << cmd_vel_W.twist.y << ",z " << cmd_vel_W.twist.z);
     ROS_INFO("**********");    

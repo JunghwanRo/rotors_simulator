@@ -130,6 +130,7 @@ void PIDImpl::reset()
     _integral = 0.0;
     _error_prev = 0.0;
     _Dout_pre = 0.0;
+    _Pout_pre = 0.0;
 }
 
 PIDImpl::~PIDImpl()
