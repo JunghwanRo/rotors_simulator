@@ -1,0 +1,15 @@
+#MISC
+- git:
+    local-name: src/misc/mav_comm/
+    uri: git@github.com:ethz-asl/mav_comm.git
+    version: master
+
+# sim
+- git:
+    local-name: src/sim/rotors_simulator/
+    uri: git@github.com:ntnu-arl/rotors_simulator.git
+    version: dev/autoassess
+- git:
+    local-name: src/sim/lidar_simulator/
+    uri: git@github.com:ntnu-arl/lidar_simulator.git
+    version: psuedo_bpearl
