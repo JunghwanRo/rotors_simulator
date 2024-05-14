@@ -19,10 +19,10 @@
   limitations under the License.
 -->
 
-<robot name="4bardrone" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="fourbardrone" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:include filename="$(find rotors_description)/urdf/component_snippets.xacro" />
   <!-- Instantiate hummingbird "mechanics" -->
-  <xacro:include filename="$(find rotors_description)/urdf/4bardrone.xacro" />
+  <xacro:include filename="$(find rotors_description)/urdf/fourbardrone.xacro" />
 
   <!-- Instantiate a controller. -->
   <xacro:controller_plugin_macro namespace="${namespace}" imu_sub_topic="imu" />

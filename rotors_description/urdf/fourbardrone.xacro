@@ -19,7 +19,7 @@
   limitations under the License.
 -->
 
-<robot name="4bardrone" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="fourbardrone" xmlns:xacro="http://ros.org/wiki/xacro">
   <!-- Properties (Taken from Novel Dynamic Inversion Architecture Design
 for Quadrocopter Control by Jian Wang et al.) -->
   <xacro:property name="namespace" value="$(arg namespace)" />
